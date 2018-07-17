@@ -38,7 +38,7 @@
     ]
   },
   {
-    "cad": "eagle",
+    "cad": "eagle-legacy",
     "files": [
       { "name": "board.CMP", "type": "tcu" },
       { "name": "board.top", "type": "tcu" },
@@ -108,13 +108,14 @@
       { "name": "board.bottom.gbr",       "type": "bcu" },
       { "name": "board.bottommask.gbr",   "type": "bsm" },
       { "name": "board.bottomsilk.gbr",   "type": "bss" },
+      { "name": "board.bottompaste.gbr",  "type": "bsp" },
       { "name": "board.fab.gbr",          "type": "drl" },
       { "name": "board.plated-drill.cnc", "type": "drl" },
       { "name": "board.outline.gbr",      "type": "out" },
       { "name": "board.top.gbr",          "type": "tcu" },
       { "name": "board.topmask.gbr",      "type": "tsm" },
-      { "name": "board.toppaste.gbr",     "type": "tsp" },
-      { "name": "board.topsilk.gbr",      "type": "tss" }
+      { "name": "board.topsilk.gbr",      "type": "tss" },
+      { "name": "board.toppaste.gbr",     "type": "tsp" }
     ]
   },
   {
@@ -135,7 +136,7 @@
     ]
   },
   {
-    "cad": "eagle-9+",
+    "cad": "eagle",
     "files": [
       {"name": "profile.gbr",             "type": "out"},
       {"name": "drills.xln",              "type": "drl"},

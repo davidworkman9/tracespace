@@ -1,135 +1,64 @@
 'use strict'
 
-// TODO: replace with Array.find once 0.10 support can be dropped
-// https://github.com/nodejs/LTS#lts-schedule
-var find = function (collection, predicate) {
-  var i
-  var element
+var constants = require('./lib/constants')
+var flatMap = require('./lib/flat-map')
+var getCommonCad = require('./lib/get-common-cad')
+var getMatches = require('./lib/get-matches')
+var layerTypes = require('./lib/layer-types')
 
-  for (i = 0; i < collection.length; i++) {
-    element = collection[i]
+module.exports = whatsThatGerber
+module.exports.getAllTypes = getAllTypes
+module.exports.getTypeById = getTypeById
+module.exports.isValidType = isValidType
 
-    if (predicate(element)) {
-      return element
-    }
-  }
+Object.keys(constants).forEach(function (constantName) {
+  module.exports[constantName] = constants[constantName]
+})
+
+function whatsThatGerber (filenames) {
+  if (typeof filenames === 'string') filenames = [filenames]
+
+  var matches = flatMap(filenames, getMatches)
+  var commonCad = getCommonCad(matches)
+
+  return filenames.reduce(function (result, filename) {
+    var match = _selectMatch(matches, filename, commonCad)
+    result[filename] = match
+      ? {id: match.id, type: match.type, side: match.side}
+      : null
+
+    return result
+  }, {})
 }
 
-var layerTypes = [
-  {
-    id: 'tcu',
-    name: {
-      en: 'top copper'
-    },
-    match: /((F.Cu)|(copper_top)|(\.top\.gbr$))|(\.((cmp$)|(top$)|(gtl$)))|(\.toplayer\.ger$)|(top copper\.txt$)/i
-  },
-  {
-    id: 'tsm',
-    name: {
-      en: 'top soldermask'
-    },
-    match: /((F.Mask)|(soldermask_top)|(topmask))|(\.((stc$)|(tsm$)|(gts$)|(smt$)))|(\.topsoldermask\.ger$)|(top solder resist\.txt$)/i
-  },
-  {
-    id: 'tss',
-    name: {
-      en: 'top silkscreen'
-    },
-    match: /((F.SilkS)|(silkscreen_top)|(topsilk))|(\.((plc$)|(tsk$)|(gto$)|(sst$)))|(\.topsilkscreen\.ger$)|(top silk screen\.txt$)/i
-  },
-  {
-    id: 'tsp',
-    name: {
-      en: 'top solderpaste'
-    },
-    match: /((F.Paste)|(solderpaste_top)|(toppaste))|(\.((crc$)|(tsp$)|(gtp$)|(spt$)))|(\.tcream\.ger$)/i
-  },
-  {
-    id: 'bcu',
-    name: {
-      en: 'bottom copper'
-    },
-    match: /(B.Cu|(copper_bottom)|\.bottom\.gbr$)|(\.((sol$)|(bot$)|(gbl$)))|(\.bottomlayer\.ger$)|(bottom copper\.txt$)/i
-  },
-  {
-    id: 'bsm',
-    name: {
-      en: 'bottom soldermask'
-    },
-    match: /(B.Mask|(soldermask_bottom)|bottommask\.)|(\.((sts$)|(bsm$)|(gbs$)|(smb$)))|(\.bottomsoldermask\.ger$)|(bottom solder resist\.txt$)/i
-  },
-  {
-    id: 'bss',
-    name: {
-      en: 'bottom silkscreen'
-    },
-    match: /((B.SilkS)|(silkscreen_bottom)|(bottomsilk\.))|(\.((pls$)|(bsk$)|(gbo$)|(ssb$)))|(\.bottomsilkscreen\.ger$)|(bottom silk screen\.txt$)/i
-  },
-  {
-    id: 'bsp',
-    name: {
-      en: 'bottom solderpaste'
-    },
-    match: /(B.Paste)|(solderpaste_bottom)|(\.((crs$)|(bsp$)|(gbp$)|(spb$)))|(\.bcream\.ger$)/i
-  },
-  {
-    id: 'icu',
-    name: {
-      en: 'inner copper'
-    },
-    match: /(In(ner)?\d+.Cu)|(\.((ly)|(gp?)|(in))\d+$)|(\.internalplane\d+\.ger$)/i
-  },
-  {
-    id: 'out',
-    name: {
-      en: 'board outline'
-    },
-    match: /(Edge.Cuts)|(profile)|(\.((dim$)|(mil$)|(gm(l|\d{1,2})$)|(gko$)|(fab$)))|(\.boardoutline\.ger$)|(\.outline\.gbr$)|(mechanical \d+\.txt$)/i
-  },
-  {
-    id: 'drl',
-    name: {
-      en: 'drill hits'
-    },
-    match: /\.((fab\.gbr$)|(cnc$)|(drl$)|(xln$)|(txt$)|(tap$)|(drd$)|(exc$)|(npt$))/i
-  },
-  {
-    id: 'drw',
-    name: {
-      en: 'gerber drawing'
-    },
-    match: /.*/
-  }
-]
-
-module.exports = function whatsThatGerber (filename) {
-  return find(layerTypes, function (type) {
-    return type.match.test(filename)
-  }).id
-}
-
-module.exports.getAllTypes = function () {
-  return layerTypes.map(function (type) {
-    return type.id
+function getAllTypes () {
+  return layerTypes.map(function (layer) {
+    return {id: layer.id, type: layer.type, side: layer.side}
   })
 }
 
-module.exports.isValidType = function (type) {
-  return layerTypes.some(function (layerType) {
-    return layerType.id === type
+function getTypeById (id) {
+  return (
+    getAllTypes().find(function (type) {
+      return type.id === id
+    }) || null
+  )
+}
+
+function isValidType (type) {
+  return layerTypes.some(function (layer) {
+    return layer.id === type.id
   })
 }
 
-module.exports.getFullName = function whatsThatGerberTypeName (typeId, locale) {
-  var type = find(layerTypes, function (type) {
-    return type.id === typeId
+function _selectMatch (matches, filename, cad) {
+  var filenameMatches = matches.filter(function (match) {
+    return match.filename === filename
   })
 
-  locale = locale || 'en'
+  var result = filenameMatches.find(function (match) {
+    return match.cad === cad
+  })
 
-  if (!type || !type.name[locale]) {
-    return ''
-  }
-
-  return type.name[locale]
+  return result || matches[0] || null
 }
